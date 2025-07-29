@@ -44,7 +44,7 @@ Image::Image(void* texture, u16 wd, u16 ht, u8 fmt, u8 wrap_s, u8 wrap_t, u8 mip
 	switch(fmt)
 	{
 	case GX_TF_I4:	//Convert to GCM_TEXTURE_FORMAT_B8
-		rsxFmt = GCM_TEXTURE_FORMAT_L8 | GCM_TEXTURE_FORMAT_LIN;
+		rsxFmt = GCM_TEXTURE_FORMAT_B8 | GCM_TEXTURE_FORMAT_LIN;
 		bpp = 1;
 		pitch = (width*bpp);
 		rsx_texture_buffer = (u32*)rsxMemalign(128,(width*height*bpp));
@@ -68,7 +68,7 @@ Image::Image(void* texture, u16 wd, u16 ht, u8 fmt, u8 wrap_s, u8 wrap_t, u8 mip
 		}
 		break;
 	case GX_TF_I8:	//Convert to GCM_TEXTURE_FORMAT_B8
-		rsxFmt = GCM_TEXTURE_FORMAT_L8 | GCM_TEXTURE_FORMAT_LIN;
+		rsxFmt = GCM_TEXTURE_FORMAT_B8 | GCM_TEXTURE_FORMAT_LIN;
 		bpp = 1;
 		pitch = (width*bpp);
 		rsx_texture_buffer = (u32*)rsxMemalign(128,(width*height*bpp));
