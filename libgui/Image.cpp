@@ -114,7 +114,7 @@ Image::Image(void* texture, u16 wd, u16 ht, u8 fmt, u8 wrap_s, u8 wrap_t, u8 mip
 		break;
 	case GX_TF_RGBA8:	//Convert to GCM_TEXTURE_FORMAT_A8R8G8B8
 	default:
-		rsxFmt = GCM_TEXTURE_FORMAT_A8R8G8B8;
+		rsxFmt = GCM_TEXTURE_FORMAT_A8R8G8B8 | GCM_TEXTURE_FORMAT_LIN;
 		bpp = 4;
 		pitch = (width*bpp);
 		rsx_texture_buffer = (u32*)rsxMemalign(128,(width*height*bpp));
