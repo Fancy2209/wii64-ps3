@@ -68,7 +68,21 @@ extern "C" {
 
 #include <assert.h>
 #include <io/pad.h>
+#if __has_include(<sysutil/video_out.h>)
 #include <sysutil/video_out.h>
+#else
+// Compatibility for non PS3Aqua PSL1GHT
+#include <sysutil/video.h>
+#define videoOutState videoState
+#define videoOutResolution videoResolution
+#define videoOutConfiguration videoConfiguration
+
+#define videoOutGetState videoGetState
+#define videoOutGetResolution videoGetResolution
+#define videoOutConfigure videoConfigure
+
+#define VIDEO_OUT_BUFFER_FORMAT_XRGB VIDEO_BUFFER_FORMAT_XRGB
+#endif
 #include <rsx/rsx.h>
 #include "rsxutil.h"
 
@@ -296,12 +310,12 @@ int main(int argc, char* argv[]){
 	int (*configFile_init)(fileBrowser_file*) = fileBrowser_ps3_init;
 	configFile_file = &saveDir_ps3_Default;
 	if(configFile_init(configFile_file)) {                //only if device initialized ok
-		FILE* f = fopen( "/dev_usb/wii64/settings.cfg", "r" );  //attempt to open file
+		FILE* f = fopen( "/dev_usb000/wii64/settings.cfg", "r" );  //attempt to open file
 		if(f) {        //open ok, read it
 			readConfig(f);
 			fclose(f);
 		}
-		f = fopen( "/dev_usb/wii64/controlP.cfg", "r" );  //attempt to open file
+		f = fopen( "/dev_usb000/wii64/controlP.cfg", "r" );  //attempt to open file
 		if(f) {
 			load_configurations(f, &controller_PS3);					//read in GC controller mappings
 			fclose(f);
