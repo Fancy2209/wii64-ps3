@@ -676,10 +676,36 @@ void OGL_UpdateCullFace()
 #endif // !__GX__
 }
 
+#ifdef PS3
+void glViewport( int x, int y, int width, int height )
+{
+	float scale[4], offset[4];
+	scale[0] = width*0.5f;
+	scale[1] = height*-0.5f;
+	scale[2] = (1.0f - 0.0f)*0.5f;
+	scale[3] = 0.0f;
+	offset[0] = x + width*0.5f;
+	offset[1] = y + height*0.5f;
+	offset[2] = (1.0f + 0.0f)*0.5f;
+	offset[3] = 0.0f;
+	rsxSetViewport(context, 
+		x, 
+		y, 
+		width, 
+		height, 
+		0.0f,
+		1.0f, 
+		scale, 
+		offset
+	);
+}
+#endif
+
 void OGL_UpdateViewport()
 {
 #ifdef PS3
-	//TODO: Implement for GCM
+	glViewport( (int)(gSP.viewport.x * OGL.scaleX), (int)((VI.height - (gSP.viewport.y + gSP.viewport.height)) * OGL.scaleY + OGL.heightOffset),
+	            (int)(gSP.viewport.width * OGL.scaleX), (int)(gSP.viewport.height * OGL.scaleY) );
 #elif defined(__GX__)
 	GX_SetViewport((f32) (OGL.GXorigX + gSP.viewport.x * OGL.GXscaleX),(f32) (OGL.GXorigY + gSP.viewport.y * OGL.GXscaleY),
 		(f32) (gSP.viewport.width * OGL.GXscaleX),(f32) (gSP.viewport.height * OGL.GXscaleY), 0.0f, 1.0f);
@@ -750,14 +776,13 @@ void OGL_UpdateStates()
 
 		OGL_UpdateDepthUpdate();
 
-		//TODO: Implement for GCM
-/*		if (gDP.otherMode.depthMode == ZMODE_DEC)
-			glEnable( GL_POLYGON_OFFSET_FILL );
+		if (gDP.otherMode.depthMode == ZMODE_DEC)
+			rsxSetPolygonOffsetFillEnable(context, true );
 		else
 		{
-//			glPolygonOffset( -3.0f, -3.0f );
-			glDisable( GL_POLYGON_OFFSET_FILL );
-		}*/
+//			rsxSetPolygonOffset(context, -3.0f, -3.0f );
+			rsxSetPolygonOffsetFillEnable(context, false );
+		}
 	}
 #elif defined(__GX__)
 	//Zbuffer settings
@@ -824,7 +849,33 @@ void OGL_UpdateStates()
 #endif // !__GX__
 
 #ifdef PS3
-	//TODO: Implement for GCM
+	if ((gDP.changed & CHANGED_ALPHACOMPARE) || (gDP.changed & CHANGED_RENDERMODE))
+	{
+		// Enable alpha test for threshold mode
+		if ((gDP.otherMode.alphaCompare == G_AC_THRESHOLD) && !(gDP.otherMode.alphaCvgSel))
+		{
+			rsxSetAlphaTestEnable( context, true );
+
+			rsxSetAlphaFunc( context, (gDP.blendColor.a > 0.0f) ? GCM_GEQUAL : GCM_GREATER, gDP.blendColor.a );
+		}
+		// Used in TEX_EDGE and similar render modes
+		else if (gDP.otherMode.cvgXAlpha)
+		{
+			rsxSetAlphaTestEnable( context, true );
+
+			// Arbitrary number -- gives nice results though
+			rsxSetAlphaFunc( context, GCM_GEQUAL, 0.5f*255 );
+		}
+		else
+			rsxSetAlphaTestEnable( context, false );
+
+/* TODO: RSX Supports this, need to add to PSL1GHT or just manually send to context
+		if (OGL.usePolygonStipple && (gDP.otherMode.alphaCompare == G_AC_DITHER) && !(gDP.otherMode.alphaCvgSel))
+			glEnable( GL_POLYGON_STIPPLE );
+		else
+			glDisable( GL_POLYGON_STIPPLE );
+*/
+	}
 #elif defined(__GX__)
 	//GX alpha compare update
 
@@ -907,7 +958,11 @@ void OGL_UpdateStates()
 #endif //!__GX__
 
 #ifdef PS3
-		//TODO: Implement for GCM
+	if (gDP.changed & CHANGED_SCISSOR)
+	{
+		rsxSetScissor(context, (int)(gDP.scissor.ulx * OGL.scaleX), (int)((VI.height - gDP.scissor.lry) * OGL.scaleY + OGL.heightOffset),
+			(int)((gDP.scissor.lrx - gDP.scissor.ulx) * OGL.scaleX), (int)((gDP.scissor.lry - gDP.scissor.uly) * OGL.scaleY) );
+	}
 #elif defined(__GX__)
 	if ((gDP.changed & CHANGED_SCISSOR) || (gSP.changed & CHANGED_VIEWPORT))
 	{
@@ -1008,7 +1063,52 @@ void OGL_UpdateStates()
 #endif // !__GX__
 
 #ifdef PS3
-		//TODO: Implement for GCM
+	if ((gDP.changed & CHANGED_RENDERMODE) || (gDP.changed & CHANGED_CYCLETYPE))
+	{
+		if ((gDP.otherMode.forceBlender) &&
+			(gDP.otherMode.cycleType != G_CYC_COPY) &&
+			(gDP.otherMode.cycleType != G_CYC_FILL) &&
+			!(gDP.otherMode.alphaCvgSel))
+		{
+ 			rsxSetBlendEnable( context, true );
+			rsxSetBlendEquation(context, GCM_FUNC_ADD, GCM_FUNC_ADD);
+
+			switch (gDP.otherMode.l >> 16)
+			{
+				case 0x0448: // Add
+				case 0x055A:
+					rsxSetBlendFunc( context, GCM_ONE, GCM_ONE, GCM_ONE, GCM_ONE );
+					break;
+				case 0x0C08: // 1080 Sky
+				case 0x0F0A: // Used LOTS of places
+					rsxSetBlendFunc( context, GCM_ONE, GCM_ZERO, GCM_ONE, GCM_ZERO );
+					break;
+				case 0xC810: // Blends fog
+				case 0xC811: // Blends fog
+				case 0x0C18: // Standard interpolated blend
+				case 0x0C19: // Used for antialiasing
+				case 0x0050: // Standard interpolated blend
+				case 0x0055: // Used for antialiasing
+					rsxSetBlendFunc( context, GCM_SRC_ALPHA, GCM_ONE_MINUS_SRC_ALPHA, GCM_SRC_ALPHA, GCM_ONE_MINUS_SRC_ALPHA );
+					break;
+				case 0x0FA5: // Seems to be doing just blend color - maybe combiner can be used for this?
+				case 0x5055: // Used in Paper Mario intro, I'm not sure if this is right...
+					rsxSetBlendFunc( context, GCM_ZERO, GCM_ONE, GCM_ZERO, GCM_ONE );
+					break;
+				default:
+					rsxSetBlendFunc( context, GCM_SRC_ALPHA, GCM_ONE_MINUS_SRC_ALPHA, GCM_SRC_ALPHA, GCM_ONE_MINUS_SRC_ALPHA );
+					break;
+			}
+		}
+		else
+			rsxSetBlendEnable( context, false );
+
+		if (gDP.otherMode.cycleType == G_CYC_FILL)
+		{
+			rsxSetBlendFunc( context, GCM_SRC_ALPHA, GCM_ONE_MINUS_SRC_ALPHA, GCM_SRC_ALPHA, GCM_ONE_MINUS_SRC_ALPHA );
+			rsxSetBlendEnable( context, true );
+		}
+	}
 #elif defined(__GX__)
 	u8 GXblenddstfactor, GXblendsrcfactor, GXblendmode;
 
@@ -1580,8 +1680,7 @@ void OGL_DrawRect( int ulx, int uly, int lrx, int lry, float *color )
 	rsxLoadVertexProgram(context,OGL.vpo,OGL.vp_ucode);
 	rsxSetVertexProgramParameter(context,OGL.vpo,OGL.projMatrix_id,(float*)&OGL.projMatrix);
 	rsxSetVertexProgramParameter(context,OGL.vpo,OGL.modelViewMatrix_id,(float*)&OGL.modelViewMatrix);
-	//glViewport( 0, OGL.heightOffset, OGL.width, OGL.height ); <- TODO
-	//glDepthRange( 0.0f, 1.0f ); <- TODO
+	glViewport( 0, OGL.heightOffset, OGL.width, OGL.height );
 
 	float z = (gDP.otherMode.depthSource == G_ZS_PRIM) ? gDP.primDepth.z : gSP.viewport.nearz;
 
@@ -1718,14 +1817,13 @@ void OGL_DrawTexturedRect( float ulx, float uly, float lrx, float lry, float uls
 	OGL_UpdateStates();
 
 #ifdef PS3
-	//TODO: Implement for GCM
 	rsxSetCullFaceEnable(context,GCM_FALSE);
 	OGL.projMatrix = transpose(Matrix4::orthographic(0.0f, VI.width, VI.height, 0.0f, 1.0f, -1.0f ));
 	//Load Vertex Program with new matrix
 	rsxLoadVertexProgram(context,OGL.vpo,OGL.vp_ucode);
 	rsxSetVertexProgramParameter(context,OGL.vpo,OGL.projMatrix_id,(float*)&OGL.projMatrix);
 	rsxSetVertexProgramParameter(context,OGL.vpo,OGL.modelViewMatrix_id,(float*)&OGL.modelViewMatrix);
-	//glViewport( 0, OGL.heightOffset, OGL.width, OGL.height ); <- TODO
+	glViewport( 0, OGL.heightOffset, OGL.width, OGL.height );
 #elif defined(__GX__)
 	//Note: Scissoring may need to be reworked here
 	float ulx1 = max(OGL.GXorigX + gDP.scissor.ulx * OGL.GXscaleX, 0);

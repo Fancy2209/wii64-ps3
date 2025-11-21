@@ -1055,7 +1055,7 @@ void gSPTriangle( s32 v0, s32 v1, s32 v2, s32 flag )
 				OGL_AddTriangle( clippedVertices, 0, 2, 3 );
 
 #ifdef PS3
-			//TODO: Implement for GCM
+			rsxSetPolygonOffsetFillEnable(context, false);
 #else //PS3
 			glDisable( GL_POLYGON_OFFSET_FILL );
 #endif //!PS3
@@ -1067,7 +1067,8 @@ void gSPTriangle( s32 v0, s32 v1, s32 v2, s32 flag )
 				OGL_AddTriangle( nearVertices, 0, 2, 3 );
 
 #ifdef PS3
-			//TODO: Implement for GCM
+			if (gDP.otherMode.depthMode == ZMODE_DEC)
+				rsxSetPolygonOffsetFillEnable(context, true);
 #else //PS3
 			if (gDP.otherMode.depthMode == ZMODE_DEC)
 				glEnable( GL_POLYGON_OFFSET_FILL );
