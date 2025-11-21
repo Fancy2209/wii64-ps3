@@ -149,7 +149,7 @@ void IplFont::initFont()
 	u16 width = fontData->sheet_width;
 	u16 height = fontData->sheet_height;
 	u32 pitch = width * bpp;
-	u8	rsxFmt = 0;
+	u8	rsxFmt = (GCM_TEXTURE_FORMAT_B8 | GCM_TEXTURE_FORMAT_LIN);
 	rsx_texture_buffer = (u32*)rsxMemalign(128,(width*height*bpp));
 	if(!rsx_texture_buffer) return;
 

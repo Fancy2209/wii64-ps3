@@ -6,7 +6,21 @@
 #include <ppu-types.h>
 
 #include <rsx/rsx.h>
+#if __has_include(<sysutil/video_out.h>)
 #include <sysutil/video_out.h>
+#else
+// Compatibility for non PS3Aqua PSL1GHT
+#include <sysutil/video.h>
+#define videoOutState videoState
+#define videoOutResolution videoResolution
+#define videoOutConfiguration videoConfiguration
+
+#define videoOutGetState videoGetState
+#define videoOutGetResolution videoGetResolution
+#define videoOutConfigure videoConfigure
+
+#define VIDEO_OUT_BUFFER_FORMAT_XRGB VIDEO_BUFFER_FORMAT_XRGB
+#endif
 
 #include "rsxutil.h"
 
@@ -14,6 +28,8 @@
 
 videoOutResolution res;
 gcmContextData *context = NULL;
+u32 *initialCommandBuffer;
+u32 commandBufferSize;
 
 u32 curr_fb = 0;
 u32 first_fb = 1;
@@ -73,7 +89,7 @@ void setRenderTarget(u32 index)
 	sf.colorPitch[2]	= 64;
 	sf.colorPitch[3]	= 64;
 
-	sf.depthFormat		= GCM_SURFACE_ZETA_Z16;
+	sf.depthFormat		= GCM_SURFACE_ZETA_Z24S8;
 	sf.depthLocation	= GCM_LOCATION_RSX;
 	sf.depthOffset		= depth_offset;
 	sf.depthPitch		= depth_pitch;
@@ -89,10 +105,37 @@ void setRenderTarget(u32 index)
 	rsxSetSurface(context,&sf);
 }
 
+void waitflip()
+{
+	while(gcmGetFlipStatus()!=0)
+		usleep(200);
+	gcmResetFlipStatus();
+}
+
+// Fixes hangs with GCC15
+// Thanks to kd-11 for telling me how to fix the issue!
+static void resetCommandBuffer()
+{
+	rsxFinish(context, 1);
+	u32 startoffs;
+	rsxAddressToOffset(initialCommandBuffer, &startoffs);
+	rsxSetJumpCommand(context, startoffs);
+
+	gcmControlRegister volatile *ctrl = gcmGetControlRegister();
+	ctrl->put = startoffs;
+	while (ctrl->get != startoffs) usleep(30);
+	
+	context->current = initialCommandBuffer;
+	context->begin   = initialCommandBuffer;
+	context->end     = context->begin + commandBufferSize;
+}
+
 void init_screen(void *host_addr,u32 size)
 {
-	rsxInit(&context, CB_SIZE,size,host_addr);
+	rsxInit(&context,CB_SIZE,size,host_addr);
 
+	initialCommandBuffer = context->current;
+	commandBufferSize = size;
 	videoOutState state;
 	videoOutGetState(0,0,&state);
 
@@ -130,15 +173,9 @@ void init_screen(void *host_addr,u32 size)
 	rsxAddressToOffset(depth_buffer,&depth_offset);
 }
 
-void waitflip()
-{
-	while(gcmGetFlipStatus()!=0)
-		usleep(200);
-	gcmResetFlipStatus();
-}
-
 void flip()
 {
+	rsxFinish(context, 0);
 	if(!first_fb) waitflip();
 	else gcmResetFlipStatus();
 
@@ -148,6 +185,7 @@ void flip()
 	gcmSetWaitFlip(context);
 
 	curr_fb ^= 1;
+	resetCommandBuffer();
 	setRenderTarget(curr_fb);
 
 	first_fb = 0;

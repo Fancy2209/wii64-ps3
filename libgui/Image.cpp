@@ -90,7 +90,7 @@ Image::Image(void* texture, u16 wd, u16 ht, u8 fmt, u8 wrap_s, u8 wrap_t, u8 mip
 		}
 		break;
 	case GX_TF_RGB5A3:	//Convert to GCM_TEXTURE_FORMAT_A1R5G5B5
-		rsxFmt = GCM_TEXTURE_FORMAT_A1R5G5B5;
+		rsxFmt = GCM_TEXTURE_FORMAT_A1R5G5B5 | GCM_TEXTURE_FORMAT_LIN;
 		bpp = 2;
 		pitch = (width*bpp);
 		rsx_texture_buffer = (u32*)rsxMemalign(128,(width*height*bpp));
@@ -145,7 +145,7 @@ Image::Image(void* texture, u16 wd, u16 ht, u8 fmt, u8 wrap_s, u8 wrap_t, u8 mip
 	texobj.mipmap		= 1;
 	texobj.dimension	= GCM_TEXTURE_DIMS_2D;
 	texobj.cubemap		= GCM_FALSE;
-	if (rsxFmt == (GCM_TEXTURE_FORMAT_B8))
+	if (rsxFmt == (GCM_TEXTURE_FORMAT_B8 | GCM_TEXTURE_FORMAT_LIN))
 	{
 		texobj.remap	= ((GCM_TEXTURE_REMAP_TYPE_REMAP << GCM_TEXTURE_REMAP_TYPE_B_SHIFT) |
 						   (GCM_TEXTURE_REMAP_TYPE_REMAP << GCM_TEXTURE_REMAP_TYPE_G_SHIFT) |
