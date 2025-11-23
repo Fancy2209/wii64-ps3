@@ -399,7 +399,7 @@ int main(int argc, char* argv[]){
 	}
 #endif
 	running = 1;
-	while (menu->isRunning() && running) {}
+	while (menu->isRunning() && running) { usleep(200); }
 
 	delete menu;
 
