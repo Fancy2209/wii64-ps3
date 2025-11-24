@@ -1381,7 +1381,7 @@ void OGL_DrawTriangles()
 		if (combiner.usesT0)		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, OGL.vertices[i].s0,OGL.vertices[i].t0);
 		else if (combiner.usesT1)	ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, OGL.vertices[i].s1,OGL.vertices[i].t1);
 		else						ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, 0.0f, 0.0f);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, OGL.vertices[i].x, OGL.vertices[i].y, OGL.vertices[i].z, OGL.vertices[i].w);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, OGL.vertices[i].x, OGL.vertices[i].y, -OGL.vertices[i].z/OGL.vertices[i].w, OGL.vertices[i].w);
 	}
 	rsxDrawVertexEnd(context);
 #elif defined(__GX__)
@@ -1553,7 +1553,7 @@ void OGL_DrawLine( SPVertex *vertices, int v0, int v1, float width )
 		SetConstant( color, combiner.vertex.color, combiner.vertex.alpha );
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, color.r, color.g, color.b, color.a);
 		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, 0.0f, 0.0f);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, vertices[v[i]].x, vertices[v[i]].y, vertices[v[i]].z, vertices[v[i]].w);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, vertices[v[i]].x, vertices[v[i]].y, -vertices[v[i]].z*vertices[v[i]].w, vertices[v[i]].w);
 	}
 	rsxDrawVertexEnd(context);
 #elif defined(__GX__)	
@@ -1689,19 +1689,19 @@ void OGL_DrawRect( int ulx, int uly, int lrx, int lry, float *color )
 	rsxDrawVertexBegin(context,GCM_TYPE_QUADS);
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, color[0], color[1], color[2], color[3]);
 		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, 0.0f, 0.0f);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, ulx, uly, z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, ulx, uly, -z, 1.0f);
 
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, color[0], color[1], color[2], color[3]);
 		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, 0.0f, 0.0f);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, lrx, uly, z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, lrx, uly, -z, 1.0f);
 
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, color[0], color[1], color[2], color[3]);
 		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, 0.0f, 0.0f);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, lrx, lry, z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, lrx, lry, -z, 1.0f);
 
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, color[0], color[1], color[2], color[3]);
 		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, 0.0f, 0.0f);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, ulx, lry, z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, ulx, lry, -z, 1.0f);
 	rsxDrawVertexEnd(context);
 
 	OGL.projMatrix = Matrix4::identity();
@@ -2039,21 +2039,21 @@ void OGL_DrawTexturedRect( float ulx, float uly, float lrx, float lry, float uls
 	rsxDrawVertexBegin(context,GCM_TYPE_QUADS);
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, rect[0].color.r, rect[0].color.g, rect[0].color.b, rect[0].color.a);
 		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, rect[0].s0, rect[0].t0);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[0].x, rect[0].y, rect[0].z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[0].x, rect[0].y, -rect[0].z, 1.0f);
 
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, rect[0].color.r, rect[0].color.g, rect[0].color.b, rect[0].color.a);
 		if (flip)	ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, rect[1].s0, rect[0].t0);
 		else		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, rect[0].s0, rect[1].t0);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[1].x, rect[0].y, rect[0].z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[1].x, rect[0].y, -rect[0].z, 1.0f);
 
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, rect[0].color.r, rect[0].color.g, rect[0].color.b, rect[0].color.a);
 		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, rect[1].s0, rect[1].t0);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[1].x, rect[1].y, rect[0].z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[1].x, rect[1].y, -rect[0].z, 1.0f);
 
 		ps3DrawVertex4f(context, OGL.vertexColor0_id->index, rect[0].color.r, rect[0].color.g, rect[0].color.b, rect[0].color.a);
 		if (flip)	ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, rect[0].s0, rect[1].t0);
 		else		ps3DrawVertex2f(context, OGL.vertexTexcoord_id->index, rect[1].s0, rect[1].t0);
-		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[0].x, rect[1].y, rect[0].z, 1.0f);
+		ps3DrawVertex4f(context, OGL.vertexPosition_id->index, rect[0].x, rect[1].y, -rect[0].z, 1.0f);
 	rsxDrawVertexEnd(context);
 #elif defined(__GX__)
 	GXColor GXcol;
