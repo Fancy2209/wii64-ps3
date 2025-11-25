@@ -100,8 +100,10 @@ struct ButtonInfo
 
 MainFrame::MainFrame()
 {
+#ifndef PS3
 	inputStatusBar = new menu::InputStatusBar(450,100);
 	add(inputStatusBar);
+#endif
 
 	for (int i = 0; i < NUM_MAIN_BUTTONS; i++)
 		FRAME_BUTTONS[i].button = new menu::Button(FRAME_BUTTONS[i].buttonStyle, &FRAME_BUTTONS[i].buttonString, 
